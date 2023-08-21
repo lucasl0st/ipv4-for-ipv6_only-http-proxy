@@ -72,6 +72,7 @@ The proxy can be configured using environment variables. Available configuration
 - `HTTPS_PORT`: The HTTPS port the proxy should listen on. Default: `443`.
 - `CERT_FILE`: The wildcard SSL/TLS certificate file for dynamic hostname-based routing. Default: `cert.pem`.
 - `KEY_FILE`: The private key file corresponding to the wildcard certificate. Default: `key.pem`.
+- `ALLOWED_HOSTS` Regex pattern for allowed hosts. Default: `.*`.
 
 You can set these environment variables before running the proxy.
 

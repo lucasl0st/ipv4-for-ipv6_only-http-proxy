@@ -8,13 +8,32 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"regexp"
 )
+
+var allowedHosts regexp.Regexp
 
 func main() {
 	var cfg config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatalf("failed to parse config: %s", err)
+	}
+
+	if len(cfg.AllowedHosts) == 0 {
+		log.Fatalf("no allowed hosts specified, exiting\n")
+	} else {
+		if cfg.AllowedHosts == ".*" {
+			log.Printf("allowing all hosts, this is insecure!\n")
+		}
+
+		r, err := regexp.Compile(cfg.AllowedHosts)
+		if err != nil {
+			log.Fatalf("failed to compile allowed hosts regex: %s", err)
+		}
+
+		allowedHosts = *r
+		log.Printf("allowed hosts: %s\n", cfg.AllowedHosts)
 	}
 
 	go func() {
@@ -39,6 +58,16 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	if !allowedHosts.MatchString(r.Host) {
+		log.Printf("%s: %s %v", "host not allowed", r.Method, r.URL)
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte("bad request"))
+		if err != nil {
+			log.Printf("%s: %s %v", err, r.Method, r.URL)
+		}
+		return
+	}
+
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
