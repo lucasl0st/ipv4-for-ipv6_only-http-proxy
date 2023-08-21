@@ -8,4 +8,13 @@ services:
     volumes:
       - ./cert.pem:/cert.pem
       - ./key.pem:/key.pem
+    environment:
+      - HTTP_PORT=80
+      - HTTPS_PORT=443
+      - CERT_FILE=/cert.pem
+      - KEY_FILE=/key.pem
     restart: always
+
+networks:
+  default:
+    enable_ipv6: true

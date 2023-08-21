@@ -3,27 +3,33 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/caarlos0/env/v9"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 )
 
 func main() {
-	go func() {
-		log.Printf("Server started on port 80\n")
+	var cfg config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatalf("failed to parse config: %s", err)
+	}
 
-		err := http.ListenAndServe(":80", http.HandlerFunc(handler))
+	go func() {
+		log.Printf("http server started on port 80\n")
+
+		err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.HttpPort), http.HandlerFunc(handler))
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
 
 	go func() {
-		log.Printf("Server started on port 443\n")
+		log.Printf("https server started on port 443\n")
 
-		err := http.ListenAndServeTLS(":443", "cert.pem", "key.pem", http.HandlerFunc(handler))
+		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", cfg.HttpsPort), cfg.CertFile, cfg.KeyFile, http.HandlerFunc(handler))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -33,10 +39,23 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+
+	r.URL.Scheme = scheme
+	r.URL.Host = r.Host
+
 	ips, err := net.LookupIP(r.Host)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Println(err)
+		log.Printf("%s: %s %v", err, r.Method, r.URL)
+		w.WriteHeader(http.StatusBadGateway)
+		_, err = w.Write([]byte("bad gateway"))
+		if err != nil {
+			log.Printf("%s: %s %v", err, r.Method, r.URL)
+		}
+		return
 	}
 
 	var target string
@@ -49,38 +68,30 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(target) == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Println("No IPv6 address found")
+		log.Printf("%s: %s %v", "could not find ipv6 address", r.Method, r.URL)
+		w.WriteHeader(http.StatusBadGateway)
+		_, err = w.Write([]byte("bad gateway"))
+		if err != nil {
+			log.Printf("%s: %s %v", err, r.Method, r.URL)
+		}
 		return
 	}
 
-	var targetURL string
+	log.Printf("%s %v", r.Method, r.URL)
 
-	if r.TLS != nil {
-		targetURL = fmt.Sprintf("https://%s%s", target, r.URL.Path)
-	} else {
-		targetURL = fmt.Sprintf("http://%s%s", target, r.URL.Path)
-	}
+	r.URL.Host = target
 
-	url, err := url.Parse(targetURL)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Println("Error parsing target URL:", err)
-		return
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(url)
+	proxy := httputil.NewSingleHostReverseProxy(r.URL)
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{ServerName: r.Host},
 	}
 
 	proxy.Transport = tr
 
 	proxy.Director = func(req *http.Request) {
 		req.Host = r.Host
-		req.URL.Scheme = url.Scheme
-		req.URL.Host = target
+		req.URL = r.URL
 	}
 
 	proxy.ServeHTTP(w, r)
