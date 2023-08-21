@@ -122,6 +122,51 @@ docker build -t ipv4-to-ipv6-proxy .
 
 You can then use the included `docker-compose.yaml` file to deploy the proxy alongside your infrastructure.
 
+### Configuring Docker for IPv6
+
+To facilitate communication between containers and IPv6-only services within an IPv6-only environment, Docker needs to be configured for IPv6 networking. Here's how to configure Docker for IPv6:
+
+#### Why IPv6 Configuration?
+
+In scenarios where IPv6 is the primary networking protocol, Docker containers must use IPv6 addresses for communication. By default, Docker is configured for IPv4 networking. To enable containers to communicate via IPv6, Docker needs specific configuration.
+
+#### Configuration Steps
+
+1. Open the Docker daemon configuration file in a text editor. On Linux, use the following command to open the file:
+
+    ```sh
+    sudo nano /etc/docker/daemon.json
+    ```
+
+2. Add the following configuration lines to enable IPv6 support and define an IPv6 CIDR block:
+
+    ```json
+    {
+      "ipv6": true,
+      "fixed-cidr-v6": "fd4c:f221::/64",
+      "experimental": true,
+      "ip6tables": true,
+      "default-address-pools": [
+        { "base": "172.17.0.0/16", "size": 16 },
+        { "base": "172.18.0.0/16", "size": 16 },
+        { "base": "172.19.0.0/16", "size": 16 },
+        { "base": "172.20.0.0/14", "size": 16 },
+        { "base": "172.24.0.0/14", "size": 16 },
+        { "base": "172.28.0.0/14", "size": 16 },
+        { "base": "192.168.0.0/16", "size": 20 },
+        { "base": "fd4c:f222::/104", "size": 112}
+      ]
+    }
+    ```
+   
+3. Restart the Docker daemon to apply the changes
+    
+    ```sh
+    sudo systemctl restart docker
+    ```
+
+The docker-compose file in this repository includes the additionally necessary configuration for IPv6 networking, when using anything else you are on your own.
+
 ## Configuring DNS Entries using external-dns
 
 If you want to configure the DNS IPv4 entries using [external-dns](https://github.com/kubernetes-sigs/external-dns), you can use a minimalistic Kubernetes Ingress resource to trigger external-dns.
