@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/caarlos0/env/v9"
 	"log"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
 )
 
 var allowedHosts regexp.Regexp
+var dns *Dns
 
 func main() {
 	var cfg config
@@ -20,11 +20,15 @@ func main() {
 		log.Fatalf("failed to parse config: %s", err)
 	}
 
+	cfg.Print()
+
+	dns = NewDns(cfg.CacheDNS, cfg.DNSCacheTTL)
+
 	if len(cfg.AllowedHosts) == 0 {
-		log.Fatalf("no allowed hosts specified, exiting\n")
+		panic("no allowed hosts specified")
 	} else {
 		if cfg.AllowedHosts == ".*" {
-			log.Printf("allowing all hosts, this is insecure!\n")
+			fmt.Println("allowing all hosts, this is insecure!")
 		}
 
 		r, err := regexp.Compile(cfg.AllowedHosts)
@@ -33,7 +37,6 @@ func main() {
 		}
 
 		allowedHosts = *r
-		log.Printf("allowed hosts: %s\n", cfg.AllowedHosts)
 	}
 
 	go func() {
@@ -76,27 +79,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	r.URL.Scheme = scheme
 	r.URL.Host = r.Host
 
-	ips, err := net.LookupIP(r.Host)
+	aaaa, err := dns.AAAA(r.Host)
 	if err != nil {
-		log.Printf("%s: %s %v", err, r.Method, r.URL)
-		w.WriteHeader(http.StatusBadGateway)
-		_, err = w.Write([]byte("bad gateway"))
-		if err != nil {
-			log.Printf("%s: %s %v", err, r.Method, r.URL)
-		}
-		return
-	}
-
-	var target string
-
-	for _, ip := range ips {
-		if ip.To4() == nil && ip.To16() != nil {
-			target = fmt.Sprintf("[%s]", ip.String())
-			break
-		}
-	}
-
-	if len(target) == 0 {
 		log.Printf("%s: %s %v", "could not find ipv6 address", r.Method, r.URL)
 		w.WriteHeader(http.StatusBadGateway)
 		_, err = w.Write([]byte("bad gateway"))
@@ -105,6 +89,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	target := fmt.Sprintf("[%s]", *aaaa)
 
 	log.Printf("%s %v", r.Method, r.URL)
 

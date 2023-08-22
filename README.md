@@ -73,6 +73,8 @@ The proxy can be configured using environment variables. Available configuration
 - `CERT_FILE`: The wildcard SSL/TLS certificate file for dynamic hostname-based routing. Default: `cert.pem`.
 - `KEY_FILE`: The private key file corresponding to the wildcard certificate. Default: `key.pem`.
 - `ALLOWED_HOSTS` Regex pattern for allowed hosts. Default: `.*`.
+- `CACHE_DNS` Cache DNS lookups. Default: `true`.
+- `DNS_CACHE_TTL` DNS cache TTL. Default: `60` (in seconds).
 
 You can set these environment variables before running the proxy.
 
