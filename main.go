@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"regexp"
+	"strings"
 )
 
 var allowedHosts regexp.Regexp
@@ -61,7 +62,9 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	if !allowedHosts.MatchString(r.Host) {
+	host := strings.Split(r.Host, ":")[0]
+
+	if !allowedHosts.MatchString(host) {
 		log.Printf("%s: %s %v", "host not allowed", r.Method, r.URL)
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write([]byte("bad request"))
@@ -77,9 +80,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.URL.Scheme = scheme
-	r.URL.Host = r.Host
+	r.URL.Host = host
 
-	aaaa, err := dns.AAAA(r.Host)
+	aaaa, err := dns.AAAA(host)
 	if err != nil {
 		log.Printf("%s: %s %v", "could not find ipv6 address", r.Method, r.URL)
 		w.WriteHeader(http.StatusBadGateway)
@@ -99,13 +102,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	proxy := httputil.NewSingleHostReverseProxy(r.URL)
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{ServerName: r.Host},
+		TLSClientConfig: &tls.Config{ServerName: host},
 	}
 
 	proxy.Transport = tr
 
 	proxy.Director = func(req *http.Request) {
-		req.Host = r.Host
+		req.Host = host
 		req.URL = r.URL
 	}
 
