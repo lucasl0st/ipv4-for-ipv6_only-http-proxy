@@ -4,9 +4,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/caarlos0/env/v9"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"path"
 	"regexp"
 	"strings"
@@ -20,18 +21,21 @@ func main() {
 	var cfg config
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatalf("failed to parse config: %s", err)
+		slog.Error("failed to parse config", "error", err)
+		os.Exit(1)
 	}
 
 	cfg.Print()
 
 	certs, err = NewCertStore(cfg.CertDir, cfg.CertFileName, cfg.KeyFileName)
 	if err != nil {
-		log.Fatalf("failed to initialize cert store: %s", err)
+		slog.Error("failed to initialize cert store", "error", err)
+		os.Exit(1)
 	}
 
 	if certs.IsEmpty() {
-		log.Fatalf("no certs found in %s", cfg.CertDir)
+		slog.Error("no certs found in cert dir", "certDir", cfg.CertDir)
+		os.Exit(1)
 	}
 
 	dns = NewDns(cfg.CacheDNS, cfg.DNSCacheTTL)
@@ -40,12 +44,13 @@ func main() {
 		panic("no allowed hosts specified")
 	} else {
 		if cfg.AllowedHosts == ".*" {
-			fmt.Println("allowing all hosts, this is insecure!")
+			slog.Warn("allowing all hosts, this is insecure!")
 		}
 
 		r, err := regexp.Compile(cfg.AllowedHosts)
 		if err != nil {
-			log.Fatalf("failed to compile allowed hosts regex: %s", err)
+			slog.Error("failed to compile allowed hosts regex", "error", err)
+			os.Exit(1)
 		}
 
 		allowedHosts = *r
@@ -58,11 +63,12 @@ func main() {
 }
 
 func listenHttp(cfg config) {
-	log.Printf("http server started on port 80\n")
+	slog.Info("http server started", "port", cfg.HttpPort)
 
 	err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.HttpPort), http.HandlerFunc(handler))
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("http server failed", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -79,7 +85,7 @@ func listenHttps(cfg config) {
 		Handler:   http.HandlerFunc(handler),
 	}
 
-	log.Printf("https server started on port 443\n")
+	slog.Info("https server started", "port", cfg.HttpsPort)
 
 	initialCert := certs.Names()[0]
 	cert := path.Join(cfg.CertDir, initialCert, cfg.CertFileName)
@@ -87,7 +93,8 @@ func listenHttps(cfg config) {
 
 	err := server.ListenAndServeTLS(cert, key)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("https server failed", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -95,11 +102,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	host := strings.Split(r.Host, ":")[0]
 
 	if !allowedHosts.MatchString(host) {
-		log.Printf("%s: %s %v", "host not allowed", r.Method, r.URL)
+		slog.Warn("host not allowed", "host", host, "method", r.Method, "url", r.URL)
+
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write([]byte("bad request"))
 		if err != nil {
-			log.Printf("%s: %s %v", err, r.Method, r.URL)
+			slog.Error("failed to write response", "error", err, "method", r.Method, "url", r.URL)
 		}
 		return
 	}
@@ -114,18 +122,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	aaaa, err := dns.AAAA(host)
 	if err != nil {
-		log.Printf("%s: %s %v", "could not find ipv6 address", r.Method, r.URL)
+		slog.Error("could not find ipv6 address", "error", err, "method", r.Method, "url", r.URL)
 		w.WriteHeader(http.StatusBadGateway)
 		_, err = w.Write([]byte("bad gateway"))
 		if err != nil {
-			log.Printf("%s: %s %v", err, r.Method, r.URL)
+			slog.Error("failed to write response", "error", err, "method", r.Method, "url", r.URL)
 		}
 		return
 	}
 
 	target := fmt.Sprintf("[%s]", *aaaa)
 
-	log.Printf("%s %v", r.Method, r.URL)
+	slog.Info("proxying request", "method", r.Method, "url", r.URL, "target", target)
 
 	r.URL.Host = target
 
