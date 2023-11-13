@@ -6,14 +6,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./cert.pem:/cert.pem
-      - ./key.pem:/key.pem
+      - /etc/letsencrypt/live/:/etc/letsencrypt/live/
+      - /etc/letsencrypt/archive/:/etc/letsencrypt/archive/
     environment:
       - HTTP_PORT=80
       - HTTPS_PORT=443
-      - CERT_FILE=/cert.pem
-      - KEY_FILE=/key.pem
-      - ALLOWED_HOSTS=.*.example.com
+      - ALLOWED_HOSTS=.*\.(example\.com|anotherexample\.co\.uk)
     restart: always
 
 networks:

@@ -7,12 +7,14 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"path"
 	"regexp"
 	"strings"
 )
 
 var allowedHosts regexp.Regexp
 var dns *Dns
+var certs *CertStore
 
 func main() {
 	var cfg config
@@ -22,6 +24,15 @@ func main() {
 	}
 
 	cfg.Print()
+
+	certs, err = NewCertStore(cfg.CertDir, cfg.CertFileName, cfg.KeyFileName)
+	if err != nil {
+		log.Fatalf("failed to initialize cert store: %s", err)
+	}
+
+	if certs.IsEmpty() {
+		log.Fatalf("no certs found in %s", cfg.CertDir)
+	}
 
 	dns = NewDns(cfg.CacheDNS, cfg.DNSCacheTTL)
 
@@ -40,25 +51,44 @@ func main() {
 		allowedHosts = *r
 	}
 
-	go func() {
-		log.Printf("http server started on port 80\n")
-
-		err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.HttpPort), http.HandlerFunc(handler))
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	go func() {
-		log.Printf("https server started on port 443\n")
-
-		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", cfg.HttpsPort), cfg.CertFile, cfg.KeyFile, http.HandlerFunc(handler))
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	go listenHttp(cfg)
+	go listenHttps(cfg)
 
 	select {}
+}
+
+func listenHttp(cfg config) {
+	log.Printf("http server started on port 80\n")
+
+	err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.HttpPort), http.HandlerFunc(handler))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func listenHttps(cfg config) {
+	tlsConfig := &tls.Config{
+		GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			return certs.Get(info.ServerName)
+		},
+	}
+
+	server := &http.Server{
+		Addr:      fmt.Sprintf(":%d", cfg.HttpsPort),
+		TLSConfig: tlsConfig,
+		Handler:   http.HandlerFunc(handler),
+	}
+
+	log.Printf("https server started on port 443\n")
+
+	initialCert := certs.Names()[0]
+	cert := path.Join(cfg.CertDir, initialCert, cfg.CertFileName)
+	key := path.Join(cfg.CertDir, initialCert, cfg.KeyFileName)
+
+	err := server.ListenAndServeTLS(cert, key)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
