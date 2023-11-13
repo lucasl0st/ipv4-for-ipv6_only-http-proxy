@@ -8,8 +8,9 @@ import (
 type config struct {
 	HttpPort     uint16 `env:"HTTP_PORT" envDefault:"80"`
 	HttpsPort    uint16 `env:"HTTPS_PORT" envDefault:"443"`
-	CertFile     string `env:"CERT_FILE" envDefault:"cert.pem"`
-	KeyFile      string `env:"KEY_FILE" envDefault:"key.pem"`
+	CertDir      string `env:"CERT_DIR" envDefault:"/etc/letsencrypt/live/"`
+	CertFileName string `env:"CERT_FILE_NAME" envDefault:"fullchain.pem"`
+	KeyFileName  string `env:"KEY_FILE_NAME" envDefault:"privkey.pem"`
 	AllowedHosts string `env:"ALLOWED_HOSTS" envDefault:".*"`
 	CacheDNS     bool   `env:"CACHE_DNS" envDefault:"true"`
 	DNSCacheTTL  uint16 `env:"DNS_CACHE_TTL" envDefault:"60"`
