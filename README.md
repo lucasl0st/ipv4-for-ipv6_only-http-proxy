@@ -70,8 +70,9 @@ The proxy can be configured using environment variables. Available configuration
 
 - `HTTP_PORT`: The HTTP port the proxy should listen on. Default: `80`.
 - `HTTPS_PORT`: The HTTPS port the proxy should listen on. Default: `443`.
-- `CERT_FILE`: The wildcard SSL/TLS certificate file for dynamic hostname-based routing. Default: `cert.pem`.
-- `KEY_FILE`: The private key file corresponding to the wildcard certificate. Default: `key.pem`.
+- `CERT_DIR`: The directory containing the SSL/TLS certificate files. The `cert-file` and `key-file` need to be stored together in subdirectories. Default: `/etc/letsencrypt/live/`.
+- `CERT_FILE_NAME`: The wildcard SSL/TLS certificate file for dynamic hostname-based routing. Default: `fullchain.pem`.
+- `KEY_FILE_NAME`: The private key file corresponding to the wildcard certificate. Default: `privkey.pem`.
 - `ALLOWED_HOSTS` Regex pattern for allowed hosts. Default: `.*`.
 - `CACHE_DNS` Cache DNS lookups. Default: `true`.
 - `DNS_CACHE_TTL` DNS cache TTL. Default: `60` (in seconds).
@@ -101,7 +102,7 @@ To enable dynamic hostname-based routing with wildcard SSL/TLS certificates, you
 
 3. Once you've added the DNS TXT record and the domain ownership is verified, Certbot will issue a wildcard certificate and save it in the default Let's Encrypt path.
 
-4. You can now use the obtained wildcard certificate and corresponding private key for the `CERT_FILE` and `KEY_FILE` environment variables when running the proxy (see [Configuration](#configuration)).
+4. You can now use the obtained wildcard certificate by placing them into `CERT_DIR` and by setting `CERT_FILE_NAME` and `KEY_FILE_NAME` accordingly (see [Configuration](#configuration)).
    Remember to renew the certificate before it expires. You can set up a cron job to automatically renew the certificate using the following command:
 
    ```sh
