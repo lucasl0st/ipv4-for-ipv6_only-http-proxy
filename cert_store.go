@@ -132,7 +132,13 @@ func isSubdomain(dnsName, subdomain string) bool {
 	}
 
 	if strings.HasPrefix(dnsName, "*.") {
+		if subdomain == dnsName[2:] {
+			return false
+		}
+
 		return strings.HasSuffix(subdomain, dnsName[2:])
+	} else if dnsName == subdomain {
+		return true
 	}
 
 	return false
