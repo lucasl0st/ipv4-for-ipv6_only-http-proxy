@@ -69,6 +69,9 @@ func (c *CertStore) Get(name string) (*tls.Certificate, error) {
 	c.RLock()
 	defer c.RUnlock()
 
+	var foundCert *tls.Certificate = nil
+	var foundCertWeight uint
+
 	for _, cert := range c.certs {
 		for _, certB := range cert.Certificate {
 			x509Cert, err := x509.ParseCertificate(certB)
@@ -77,14 +80,30 @@ func (c *CertStore) Get(name string) (*tls.Certificate, error) {
 			}
 
 			for _, dnsName := range x509Cert.DNSNames {
-				if isSubdomain(dnsName, name) {
-					return cert, nil
+				matches := isSubdomain(dnsName, name)
+				if !matches {
+					continue
+				}
+
+				if foundCert == nil {
+					foundCert = cert
+					foundCertWeight = uint(len(dnsName))
+					continue
+				}
+
+				if uint(len(dnsName)) > foundCertWeight {
+					foundCert = cert
+					foundCertWeight = uint(len(dnsName))
 				}
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("no cert found for %s", name)
+	if foundCert == nil {
+		return nil, fmt.Errorf("no cert found for %s", name)
+	}
+
+	return foundCert, nil
 }
 
 func (c *CertStore) Names() []string {
