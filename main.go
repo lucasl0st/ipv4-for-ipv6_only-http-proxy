@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/caarlos0/env/v9"
+	"github.com/caarlos0/env/v11"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
