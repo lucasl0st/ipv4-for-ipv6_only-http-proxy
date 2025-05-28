@@ -1,6 +1,6 @@
 services:
   proxy:
-    build: .
+    image: ghcr.io/lucasl0st/ipv4-for-ipv6_only-http-proxy:latest
     ports:
       - "80:80"
       - "443:443"
