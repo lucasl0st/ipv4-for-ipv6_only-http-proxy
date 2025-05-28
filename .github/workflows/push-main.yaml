@@ -35,7 +35,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          artifact-ids: binaries
+          name: binaries
+          path: binaries/
 
       - name: Create Github release
         uses: ncipollo/release-action@v1
