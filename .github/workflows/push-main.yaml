@@ -1,0 +1,12 @@
+---
+name: Push to main
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    uses: ./.github/workflows/_build.yaml
+    with:
+      tag_latest: true

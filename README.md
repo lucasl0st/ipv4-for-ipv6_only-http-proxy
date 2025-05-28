@@ -13,7 +13,6 @@ This project provides a Go-based proxy server that acts as an intermediary betwe
 - [Obtaining a Wildcard Certificate](#obtaining-a-wildcard-certificate)
 - [Dynamic Routing](#dynamic-routing)
 - [Dockerization](#dockerization)
-- [Configuring DNS ENtries using external-dns](#Configuring-DNS-Entries-using-external-dns)
 
 ## Overview
 
@@ -170,25 +169,3 @@ In scenarios where IPv6 is the primary networking protocol, Docker containers mu
     ```
 
 The docker-compose file in this repository includes the additionally necessary configuration for IPv6 networking, when using anything else you are on your own.
-
-## Configuring DNS Entries using external-dns
-
-If you want to configure the DNS IPv4 entries using [external-dns](https://github.com/kubernetes-sigs/external-dns), you can use a minimalistic Kubernetes Ingress resource to trigger external-dns.
-
-Here's a simple example of how to configure a "fake" Ingress resource to trigger external-dns to add DNS records:
-
-Create an Ingress resource with the `external-dns.alpha.kubernetes.io/hostname` and `external-dns.alpha.kubernetes.io/target` annotations:
-
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: sub-example-ipv4
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: sub.example.com
-    external-dns.alpha.kubernetes.io/target: 1.2.3.4
-spec:
-  rules:
-  - http:
-```
