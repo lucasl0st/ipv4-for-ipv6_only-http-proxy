@@ -1,31 +1,29 @@
-FROM golang:1.24-alpine as builder
+FROM debian:12 AS binary-chooser
 
-RUN apk add git
+ARG TARGETPLATFORM
 
-WORKDIR /src
+COPY ./build /build
 
-COPY go.mod ./
-COPY go.sum ./
+RUN case ${TARGETPLATFORM} in \
+         "linux/amd64")  BINARY=/build/bin/ipv4-for-ipv6_only-http-proxy_linux-amd64  ;; \
+         "linux/arm64")  BINARY=/build/bin/ipv4-for-ipv6_only-http-proxy_linux-arm64  ;; \
+    esac \
+   && cp ${BINARY} /usr/bin/ipv4-for-ipv6_only-http-proxy
+RUN chmod +x /usr/bin/ipv4-for-ipv6_only-http-proxy
 
-RUN mkdir /new_tmp
-
-RUN go mod download
-
-COPY . ./
-
-RUN go build -o /ipv4-for-ipv6_only-http-proxy
-
-FROM scratch
+FROM gcr.io/distroless/static:nonroot
 
 LABEL org.opencontainers.image.source="https://github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy"
 LABEL org.opencontainers.image.description="ipv4-for-ipv6_only-http-proxy"
 
-COPY --from=builder /ipv4-for-ipv6_only-http-proxy /usr/bin/ipv4-for-ipv6_only-http-proxy
+WORKDIR /
 
-COPY --from=builder /new_tmp /tmp
+COPY --from=binary-chooser /usr/bin/ipv4-for-ipv6_only-http-proxy /usr/bin/ipv4-for-ipv6_only-http-proxy
 COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+USER 65532:65532
 
 EXPOSE 80
 EXPOSE 443
 
-CMD [ "/usr/bin/ipv4-for-ipv6_only-http-proxy" ]
+ENTRYPOINT ["/usr/bin/ipv4-for-ipv6_only-http-proxy"]
