@@ -1,8 +1,10 @@
-package internal
+package compose
 
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/caarlos0/env/v11"
 )
 
 type Config struct {
@@ -12,8 +14,16 @@ type Config struct {
 	CertFileName string `env:"CERT_FILE_NAME" envDefault:"fullchain.pem"`
 	KeyFileName  string `env:"KEY_FILE_NAME" envDefault:"privkey.pem"`
 	AllowedHosts string `env:"ALLOWED_HOSTS" envDefault:".*"`
-	CacheDNS     bool   `env:"CACHE_DNS" envDefault:"true"`
-	DNSCacheTTL  uint16 `env:"DNS_CACHE_TTL" envDefault:"60"`
+}
+
+func GetConfig() Config {
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	return cfg
 }
 
 func (c Config) Print() {
@@ -22,7 +32,7 @@ func (c Config) Print() {
 	fmt.Println("Configuration:")
 	fmt.Println("----------------------")
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := v.Type().Field(i)
 		value := v.Field(i)
 
