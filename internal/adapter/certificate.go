@@ -1,4 +1,4 @@
-package internal
+package adapter
 
 import (
 	"crypto/tls"
@@ -7,41 +7,24 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
+
+	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal/port"
 )
 
-type CertStore struct {
-	sync.RWMutex
-
-	path         string
-	certFileName string
-	keyFileName  string
-
+type certificate struct {
 	certs map[string]*tls.Certificate
 }
 
-func NewCertStore(path, certFileName, keyFileName string) (*CertStore, error) {
-	certStore := &CertStore{
-		path:         path,
-		certFileName: certFileName,
-		keyFileName:  keyFileName,
+func NewCertificate(certsPath, certFileName, keyFileName string) (port.Certificate, error) {
+	c := &certificate{
+		certs: map[string]*tls.Certificate{},
 	}
-
-	err := certStore.initialize()
-	if err != nil {
-		return nil, err
-	}
-
-	return certStore, nil
+	err := c.init(certsPath, certFileName, keyFileName)
+	return c, err
 }
 
-func (c *CertStore) initialize() error {
-	c.Lock()
-	defer c.Unlock()
-
-	c.certs = map[string]*tls.Certificate{}
-
-	certDirs, err := os.ReadDir(c.path)
+func (c *certificate) init(certsPath, certFileName, keyFileName string) error {
+	certDirs, err := os.ReadDir(certsPath)
 	if err != nil {
 		return fmt.Errorf("failed to read certs dir: %s", err)
 	}
@@ -52,8 +35,8 @@ func (c *CertStore) initialize() error {
 		}
 
 		cert, err := tls.LoadX509KeyPair(
-			path.Join(c.path, certDir.Name(), c.certFileName),
-			path.Join(c.path, certDir.Name(), c.keyFileName),
+			path.Join(certsPath, certDir.Name(), certFileName),
+			path.Join(certsPath, certDir.Name(), keyFileName),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to load cert %s: %s", certDir.Name(), err)
@@ -65,16 +48,13 @@ func (c *CertStore) initialize() error {
 	return nil
 }
 
-func (c *CertStore) Get(name string) (*tls.Certificate, error) {
-	c.RLock()
-	defer c.RUnlock()
-
+func (c *certificate) Get(name string) (*tls.Certificate, error) {
 	var foundCert *tls.Certificate = nil
 	var foundCertWeight uint
 
 	for _, cert := range c.certs {
-		for _, certB := range cert.Certificate {
-			x509Cert, err := x509.ParseCertificate(certB)
+		for _, subCert := range cert.Certificate {
+			x509Cert, err := x509.ParseCertificate(subCert)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse cert: %s", err)
 			}
@@ -106,10 +86,7 @@ func (c *CertStore) Get(name string) (*tls.Certificate, error) {
 	return foundCert, nil
 }
 
-func (c *CertStore) Names() []string {
-	c.RLock()
-	defer c.RUnlock()
-
+func (c *certificate) Names() []string {
 	var names []string
 
 	for name := range c.certs {
@@ -119,10 +96,7 @@ func (c *CertStore) Names() []string {
 	return names
 }
 
-func (c *CertStore) IsEmpty() bool {
-	c.RLock()
-	defer c.RUnlock()
-
+func (c *certificate) IsEmpty() bool {
 	return len(c.certs) == 0
 }
 
