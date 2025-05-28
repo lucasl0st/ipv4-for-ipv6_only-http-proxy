@@ -10,13 +10,14 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 )
 
 var (
 	allowedHosts regexp.Regexp
-	dns          *Dns
+	dns          *DNS
 	certs        *CertStore
 )
 
@@ -41,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dns = NewDns(cfg.CacheDNS, cfg.DNSCacheTTL)
+	dns = NewDNS(cfg.CacheDNS, cfg.DNSCacheTTL)
 
 	if len(cfg.AllowedHosts) == 0 {
 		panic("no allowed hosts specified")
@@ -59,36 +60,43 @@ func main() {
 		allowedHosts = *r
 	}
 
-	go listenHttp(cfg)
-	go listenHttps(cfg)
+	go listenHTTP(cfg)
+	go listenHTTPs(cfg)
 
 	select {}
 }
 
-func listenHttp(cfg config) {
-	slog.Info("http server started", "port", cfg.HttpPort)
+func listenHTTP(cfg config) {
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.HTTPPort),
+		ReadHeaderTimeout: 3 * time.Second,
+		Handler:           http.HandlerFunc(handler),
+	}
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.HttpPort), http.HandlerFunc(handler))
+	slog.Info("starting http server", "addr", server.Addr)
+
+	err := server.ListenAndServe()
 	if err != nil {
 		slog.Error("http server failed", "error", err)
 		os.Exit(1)
 	}
 }
 
-func listenHttps(cfg config) {
+func listenHTTPs(cfg config) {
 	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			return certs.Get(info.ServerName)
 		},
 	}
 
 	server := &http.Server{
-		Addr:      fmt.Sprintf(":%d", cfg.HttpsPort),
-		TLSConfig: tlsConfig,
-		Handler:   http.HandlerFunc(handler),
+		Addr:              fmt.Sprintf(":%d", cfg.HTTPSPort),
+		ReadHeaderTimeout: 3 * time.Second,
+		TLSConfig:         tlsConfig,
+		Handler:           http.HandlerFunc(handler),
 	}
-
-	slog.Info("https server started", "port", cfg.HttpsPort)
+	slog.Info("starting https server", "addr", server.Addr)
 
 	initialCert := certs.Names()[0]
 	cert := path.Join(cfg.CertDir, initialCert, cfg.CertFileName)
@@ -143,7 +151,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	proxy := httputil.NewSingleHostReverseProxy(r.URL)
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{ServerName: host},
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			ServerName: host,
+		},
 	}
 
 	proxy.Transport = tr

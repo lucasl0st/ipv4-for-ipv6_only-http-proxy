@@ -1,0 +1,38 @@
+---
+version: "2"
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+
+output:
+  formats:
+    text:
+      path: stdout
+      colors: true
+
+linters:
+  enable:
+    - copyloopvar
+    - exhaustive
+    - goconst
+    - gocyclo
+    - gosec
+    - lll
+    - misspell
+    - nakedret
+    - revive
+    - testifylint
+    - unconvert
+
+  settings:
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

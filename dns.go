@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type Dns struct {
+type DNS struct {
 	lock sync.Mutex
 
 	shouldCache bool
@@ -21,8 +21,8 @@ type CacheEntry struct {
 	Timestamp time.Time
 }
 
-func NewDns(cache bool, ttl uint16) *Dns {
-	d := &Dns{
+func NewDNS(cache bool, ttl uint16) *DNS {
+	d := &DNS{
 		shouldCache: cache,
 		cache:       map[string]CacheEntry{},
 		ttl:         ttl,
@@ -32,7 +32,7 @@ func NewDns(cache bool, ttl uint16) *Dns {
 	return d
 }
 
-func (d *Dns) cacheWorker() {
+func (d *DNS) cacheWorker() {
 	for {
 		d.lock.Lock()
 
@@ -56,7 +56,7 @@ func (d *Dns) cacheWorker() {
 	}
 }
 
-func (d *Dns) AAAA(host string) (*string, error) {
+func (d *DNS) AAAA(host string) (*string, error) {
 	d.lock.Lock()
 
 	cached, ok := d.cache[host]
@@ -78,7 +78,7 @@ func (d *Dns) AAAA(host string) (*string, error) {
 	return &aaaa, nil
 }
 
-func (d *Dns) lookupAAAA(host string) (*CacheEntry, error) {
+func (d *DNS) lookupAAAA(host string) (*CacheEntry, error) {
 	ips, err := net.LookupIP(host)
 	if err != nil {
 		return nil, err
