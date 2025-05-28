@@ -10,7 +10,7 @@ build:
 		os=$$(echo $(platform) | cut -d'/' -f1); \
 		arch=$$(echo $(platform) | cut -d'/' -f2); \
 		out="build/bin/$(APPLICATION)_$${os}-$${arch}"; \
-		GOOS=$${os} GOARCH=$${arch} CGO_ENABLED=0 go build -o $${out} ; \
+		GOOS=$${os} GOARCH=$${arch} CGO_ENABLED=0 go build -o $${out} ./cmd/proxy ; \
 		echo "built $${out}"; \
 	)\
 

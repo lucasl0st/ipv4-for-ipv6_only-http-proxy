@@ -1,11 +1,11 @@
-package main
+package internal
 
 import (
 	"fmt"
 	"reflect"
 )
 
-type config struct {
+type Config struct {
 	HTTPPort     uint16 `env:"HTTP_PORT" envDefault:"80"`
 	HTTPSPort    uint16 `env:"HTTPS_PORT" envDefault:"443"`
 	CertDir      string `env:"CERT_DIR" envDefault:"/etc/letsencrypt/live/"`
@@ -16,7 +16,7 @@ type config struct {
 	DNSCacheTTL  uint16 `env:"DNS_CACHE_TTL" envDefault:"60"`
 }
 
-func (c config) Print() {
+func (c Config) Print() {
 	v := reflect.ValueOf(c)
 
 	fmt.Println("Configuration:")

@@ -12,17 +12,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal"
+
 	"github.com/caarlos0/env/v11"
 )
 
 var (
 	allowedHosts regexp.Regexp
-	dns          *DNS
-	certs        *CertStore
+	dns          *internal.DNS
+	certs        *internal.CertStore
 )
 
 func main() {
-	var cfg config
+	var cfg internal.Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		slog.Error("failed to parse config", "error", err)
@@ -31,7 +33,7 @@ func main() {
 
 	cfg.Print()
 
-	certs, err = NewCertStore(cfg.CertDir, cfg.CertFileName, cfg.KeyFileName)
+	certs, err = internal.NewCertStore(cfg.CertDir, cfg.CertFileName, cfg.KeyFileName)
 	if err != nil {
 		slog.Error("failed to initialize cert store", "error", err)
 		os.Exit(1)
@@ -42,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dns = NewDNS(cfg.CacheDNS, cfg.DNSCacheTTL)
+	dns = internal.NewDNS(cfg.CacheDNS, cfg.DNSCacheTTL)
 
 	if len(cfg.AllowedHosts) == 0 {
 		panic("no allowed hosts specified")
@@ -66,7 +68,7 @@ func main() {
 	select {}
 }
 
-func listenHTTP(cfg config) {
+func listenHTTP(cfg internal.Config) {
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.HTTPPort),
 		ReadHeaderTimeout: 3 * time.Second,
@@ -82,7 +84,7 @@ func listenHTTP(cfg config) {
 	}
 }
 
-func listenHTTPs(cfg config) {
+func listenHTTPs(cfg internal.Config) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
