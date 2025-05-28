@@ -16,11 +16,11 @@ build:
 
 
 ADDITIONAL_DOCKER_OPTS :=
-ifeq (push, "true")
+ifeq ($(push), true)
 	ADDITIONAL_DOCKER_OPTS += --push
 endif
 
-ifeq (tag-latest, "true")
+ifeq ($(tag-latest), true)
 	ADDITIONAL_DOCKER_OPTS += -t $(DOCKER_REGISTRY)/$(APPLICATION):latest
 endif
 
