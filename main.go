@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/caarlos0/env/v11"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -11,11 +10,15 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/caarlos0/env/v11"
 )
 
-var allowedHosts regexp.Regexp
-var dns *Dns
-var certs *CertStore
+var (
+	allowedHosts regexp.Regexp
+	dns          *Dns
+	certs        *CertStore
+)
 
 func main() {
 	var cfg config
