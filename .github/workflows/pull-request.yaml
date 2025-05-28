@@ -7,3 +7,6 @@ on:
 jobs:
   build:
     uses: ./.github/workflows/_build.yaml
+
+  code:
+    uses: ./.github/workflows/_code.yaml

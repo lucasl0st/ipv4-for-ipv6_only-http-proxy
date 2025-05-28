@@ -1,0 +1,44 @@
+---
+name: Code Validation
+
+on:
+  workflow_call:
+
+jobs:
+  fmt:
+    name: Formatting
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run formatter
+        run:
+          make fmt
+
+      - name: Check for untracked Changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Untracked changes found in the repository."
+            git status
+            exit 1
+          fi
+
+  lint:
+    name: Linting
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run linter
+        run:
+          make lint
