@@ -22,11 +22,14 @@ type CacheEntry struct {
 }
 
 func NewDns(cache bool, ttl uint16) *Dns {
-	return &Dns{
+	d := &Dns{
 		shouldCache: cache,
 		cache:       map[string]CacheEntry{},
 		ttl:         ttl,
 	}
+
+	go d.cacheWorker()
+	return d
 }
 
 func (d *Dns) cacheWorker() {
