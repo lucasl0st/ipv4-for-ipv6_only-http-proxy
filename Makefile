@@ -24,6 +24,10 @@ ifeq ($(tag-latest), true)
 	ADDITIONAL_DOCKER_OPTS += -t $(DOCKER_REGISTRY)/$(APPLICATION):latest
 endif
 
+ifdef additional-tag
+	ADDITIONAL_DOCKER_OPTS += -t $(DOCKER_REGISTRY)/$(APPLICATION):$(additional-tag)
+endif
+
 .PHONY: docker
 docker: build
 	docker buildx build . -t $(DOCKER_REGISTRY)/$(APPLICATION):$(TAG) --platform=$(DOCKER_PLATFORMS) -f Dockerfile $(ADDITIONAL_DOCKER_OPTS)
