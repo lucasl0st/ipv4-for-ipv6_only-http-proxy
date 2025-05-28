@@ -1,67 +1,23 @@
 # IPv4 to IPv6 Proxy
 
-This project provides a Go-based proxy server that acts as an intermediary between IPv4 clients and IPv6-only endpoints. It allows IPv4 clients to communicate with services deployed on IPv6-only infrastructure seamlessly. The proxy supports SSL/TLS termination using wildcard certificates for dynamic hostname-based routing.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Usage](#usage)
-    - [Build](#build)
-    - [Run](#run)
-- [Configuration](#configuration)
-- [Obtaining a Wildcard Certificate](#obtaining-a-wildcard-certificate)
-- [Dynamic Routing](#dynamic-routing)
-- [Dockerization](#dockerization)
+Proxy your IPv6-only HTTP infrastructure transparently using a single IPv4 host.
 
 ## Overview
 
-The IPv4 to IPv6 Proxy is a solution for scenarios where endpoints are configured with IPv6-only networking, but there's a need to accommodate IPv4 clients that cannot directly communicate with IPv6 endpoints. This proxy acts as a bridge, translating incoming IPv4 requests to IPv6 requests, forwarding them to the target endpoint, and returning the responses back to the clients. The proxy also supports dynamic hostname-based routing using wildcard SSL/TLS certificates.
+The IPv4 to IPv6 Proxy is a solution for scenarios where endpoints are configured with IPv6-only networking,
+but there's a need to accommodate IPv4 clients that cannot directly communicate with IPv6 endpoints.
+This proxy acts as a bridge, translating incoming IPv4 requests to IPv6 requests, forwarding them to the target endpoint,
+and returning the responses back to the clients.
+The proxy uses dynamic hostname-based routing with wildcard SSL/TLS certificates.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following prerequisites:
 
-- Go programming environment (for building the proxy)
-- Docker (for containerization)
-- `docker-compose` (for managing the deployment)
-- A working network infrastructure with IPv6-only endpoints
+- docker / docker-compose
+- A server which can host a webserver on IPv4
 
 ## Usage
-
-### Build
-
-To build the proxy, follow these steps:
-
-Clone the repository:
-
-```sh
-git clone https://github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy.git
-```
-
-Change to the project directory by running:
-
-```sh
-cd ipv4-for-ipv6_only-http-proxy
-```
-
-
-Build the proxy binary by running:
-
-```sh
-go build -o ipv4-to-ipv6-proxy
-```
-
-### Run
-
-To run the proxy, execute the following command:
-
-```sh
-./ipv4-to-ipv6-proxy
-```
-
-
-The proxy will start and listen for incoming connections on the specified port (default is 8080). Make sure to set the necessary environment variables for configuring ports and SSL/TLS certificates (see [Configuration](#configuration)).
 
 ## Configuration
 
@@ -73,14 +29,11 @@ The proxy can be configured using environment variables. Available configuration
 - `CERT_FILE_NAME`: The wildcard SSL/TLS certificate file for dynamic hostname-based routing. Default: `fullchain.pem`.
 - `KEY_FILE_NAME`: The private key file corresponding to the wildcard certificate. Default: `privkey.pem`.
 - `ALLOWED_HOSTS` Regex pattern for allowed hosts. Default: `.*`.
-- `CACHE_DNS` Cache DNS lookups. Default: `true`.
-- `DNS_CACHE_TTL` DNS cache TTL. Default: `60` (in seconds).
-
-You can set these environment variables before running the proxy.
 
 ## Obtaining a Wildcard Certificate
 
-To enable dynamic hostname-based routing with wildcard SSL/TLS certificates, you can use [Certbot](https://certbot.eff.org/) to obtain a wildcard certificate from Let's Encrypt. The following steps outline the process:
+To enable dynamic hostname-based routing with wildcard SSL/TLS certificates, you can use [Certbot](https://certbot.eff.org/)
+to obtain a wildcard certificate from Let's Encrypt. The following steps outline the process:
 
 1. Install Certbot on your system if it's not already installed:
 
@@ -91,7 +44,7 @@ To enable dynamic hostname-based routing with wildcard SSL/TLS certificates, you
    ```
 
 2. Obtain a wildcard certificate using the DNS-01 challenge method. Replace `YOUR_EMAIL` with your email address and `YOUR_DOMAIN` with your actual domain:
-
+  
    Run:
 
    ```sh
@@ -102,36 +55,21 @@ To enable dynamic hostname-based routing with wildcard SSL/TLS certificates, you
 3. Once you've added the DNS TXT record and the domain ownership is verified, Certbot will issue a wildcard certificate and save it in the default Let's Encrypt path.
 
 4. You can now use the obtained wildcard certificate by placing them into `CERT_DIR` and by setting `CERT_FILE_NAME` and `KEY_FILE_NAME` accordingly (see [Configuration](#configuration)).
-   Remember to renew the certificate before it expires. You can set up a cron job to automatically renew the certificate using the following command:
+   Remember to renew the certificate before it expires. You can set up a cronjob to automatically renew the certificate using the following command:
 
    ```sh
    sudo certbot renew
    ```
-
-
 For more detailed instructions and troubleshooting, refer to the [Certbot documentation](https://certbot.eff.org/docs/intro.html).
 
-## Dynamic Routing
+## Docker
 
-The proxy supports dynamic hostname-based routing using wildcard SSL/TLS certificates. When a request is received, the proxy extracts the hostname, looks up the corresponding IPv6 address in your infrastructure, and forwards the request to that address. This allows seamless communication between IPv4 clients and IPv6-only services.
-
-## Dockerization
-
-A Docker image can be built
-
-```sh
-docker build -t ipv4-to-ipv6-proxy .
-```
-
-You can then use the included `docker-compose.yaml` file to deploy the proxy alongside your infrastructure.
+Run use the [docker-compose.yaml](docker-compose.yaml) and run `docker-compose up -d` to start the latest version of the proxy.
 
 ### Configuring Docker for IPv6
 
-To facilitate communication between containers and IPv6-only services within an IPv6-only environment, Docker needs to be configured for IPv6 networking. Here's how to configure Docker for IPv6:
-
-#### Why IPv6 Configuration?
-
-In scenarios where IPv6 is the primary networking protocol, Docker containers must use IPv6 addresses for communication. By default, Docker is configured for IPv4 networking. To enable containers to communicate via IPv6, Docker needs specific configuration.
+To facilitate communication between containers and IPv6-only services within an IPv6-only environment,
+Docker needs to be configured for IPv6 networking. Here's how to configure Docker for IPv6:
 
 #### Configuration Steps
 
@@ -167,5 +105,7 @@ In scenarios where IPv6 is the primary networking protocol, Docker containers mu
     ```sh
     sudo systemctl restart docker
     ```
+> [!WARNING]  
+> In some cases a full system reboot might be required.
 
 The docker-compose file in this repository includes the additionally necessary configuration for IPv6 networking, when using anything else you are on your own.
