@@ -35,7 +35,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          artifact-ids: ${{ needs.build.outputs.binary_artifact }}
+          artifact-ids: binaries
 
       - name: Create Github release
         uses: ncipollo/release-action@v1
@@ -43,4 +43,4 @@ jobs:
           tag: ${{ needs.tag.outputs.tag }}
           name: ${{ needs.tag.outputs.tag }}
           body: ${{ needs.tag.outputs.changelog }}
-          artifacts: ${{ needs.build.outputs.binary_artifact }}/*
+          artifacts: binaries/*
