@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal/adapter"
+	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal/port"
 	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal/service"
 )
 
@@ -24,10 +25,14 @@ func ListenAndServe() {
 		os.Exit(1)
 	}
 
-	proxy, err := service.NewProxy(cfg.AllowedHosts, dns)
+	allowedHostFilter, err := adapter.NewFilterAllowedHost(cfg.AllowedHosts)
 	if err != nil {
 		panic(err)
 	}
+
+	proxy := service.NewProxy([]port.Filter{
+		allowedHostFilter,
+	}, dns)
 
 	httpServer := newHTTPServer(proxy, cfg.HTTPPort)
 	httpSServer := newHTTPSServer(proxy, certificate, cfg.HTTPSPort)
