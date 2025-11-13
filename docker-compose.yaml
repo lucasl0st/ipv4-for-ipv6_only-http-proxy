@@ -12,7 +12,11 @@ services:
       - HTTPS_PORT=443
       - ALLOWED_HOSTS=.*\.(example\.com|anotherexample\.co\.uk)
     restart: always
-
+#    command:
+#      - --source-ip-filter-hosts=a.example.com
+#      - --source-ip-filter-cidrs=10.0.0.0/8,192.168.42.0/24
+#      - --source-ip-filter-hosts=b.example.com
+#      - --source-ip-filter-cidrs=192.168.42.0/24
 networks:
   default:
     enable_ipv6: true

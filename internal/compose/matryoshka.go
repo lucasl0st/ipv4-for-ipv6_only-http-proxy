@@ -25,14 +25,24 @@ func ListenAndServe() {
 		os.Exit(1)
 	}
 
+	var filters []port.Filter
+
 	allowedHostFilter, err := adapter.NewFilterAllowedHost(cfg.AllowedHosts)
 	if err != nil {
 		panic(err)
 	}
+	filters = append(filters, allowedHostFilter)
 
-	proxy := service.NewProxy([]port.Filter{
-		allowedHostFilter,
-	}, dns)
+	for i, host := range cfg.SourceIPFilterHosts {
+		sourceIPFilter, err := adapter.NewFilterSourceIP(host, cfg.SourceIPFilterCIDRs[i])
+		if err != nil {
+			panic(err)
+		}
+
+		filters = append(filters, sourceIPFilter)
+	}
+
+	proxy := service.NewProxy(filters, dns)
 
 	httpServer := newHTTPServer(proxy, cfg.HTTPPort)
 	httpSServer := newHTTPSServer(proxy, certificate, cfg.HTTPSPort)
