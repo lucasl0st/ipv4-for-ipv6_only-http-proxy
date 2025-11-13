@@ -1,4 +1,4 @@
-FROM debian:12 AS binary-chooser
+FROM debian:13 AS binary-chooser
 
 ARG TARGETPLATFORM
 
