@@ -2,46 +2,28 @@ package service
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
-	"regexp"
 	"strings"
 
 	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal/port"
 )
 
 type proxy struct {
-	allowedHosts regexp.Regexp
-	dns          port.DNS
+	filters []port.Filter
+	dns     port.DNS
 }
 
 func NewProxy(
-	allowedHosts string,
+	filters []port.Filter,
 	dns port.DNS,
-) (http.Handler, error) {
-	var r *regexp.Regexp
-
-	if len(allowedHosts) == 0 {
-		return nil, errors.New("no allowed hosts specified")
-	}
-
-	if allowedHosts == ".*" {
-		slog.Warn("allowing all hosts, this is insecure!")
-	}
-
-	var err error
-	r, err = regexp.Compile(allowedHosts)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to compile allowed hosts regex"), err)
-	}
-
+) http.Handler {
 	return &proxy{
-		allowedHosts: *r,
-		dns:          dns,
-	}, nil
+		filters: filters,
+		dns:     dns,
+	}
 }
 
 func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -56,11 +38,10 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.Error("error writing response", "error", wErr, "host", host, "method", r.Method, "url", r.URL)
 	}()
 
-	if !p.allowedHosts.MatchString(host) {
-		slog.Warn("host not allowed", "host", host, "method", r.Method, "url", r.URL)
-		w.WriteHeader(http.StatusBadRequest)
-		_, wErr = w.Write([]byte("bad request"))
-		return
+	for _, filter := range p.filters {
+		if !filter.Filter(w, r) {
+			return
+		}
 	}
 
 	scheme := "http"
