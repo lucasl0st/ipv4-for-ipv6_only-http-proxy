@@ -21,12 +21,14 @@ func (s *stringSlice) Set(val string) error {
 
 type Config struct {
 	// env
-	HTTPPort     uint16 `env:"HTTP_PORT" envDefault:"80"`
-	HTTPSPort    uint16 `env:"HTTPS_PORT" envDefault:"443"`
-	CertDir      string `env:"CERT_DIR" envDefault:"/etc/letsencrypt/live/"`
-	CertFileName string `env:"CERT_FILE_NAME" envDefault:"fullchain.pem"`
-	KeyFileName  string `env:"KEY_FILE_NAME" envDefault:"privkey.pem"`
-	AllowedHosts string `env:"ALLOWED_HOSTS" envDefault:".*"`
+	HTTPPort            uint16 `env:"HTTP_PORT" envDefault:"80"`
+	HTTPSPort           uint16 `env:"HTTPS_PORT" envDefault:"443"`
+	CertDir             string `env:"CERT_DIR" envDefault:"/etc/letsencrypt/live/"`
+	CertFileName        string `env:"CERT_FILE_NAME" envDefault:"fullchain.pem"`
+	KeyFileName         string `env:"KEY_FILE_NAME" envDefault:"privkey.pem"`
+	AllowedHosts        string `env:"ALLOWED_HOSTS" envDefault:".*"`
+	MaxIdleConnsPerHost int    `env:"MAX_IDLE_CONNS_PER_HOST" envDefault:"1024"`
+	AttemptHTTP2        bool   `env:"HTTP2" envDefault:"true"`
 
 	// flags
 	SourceIPFilterHosts stringSlice

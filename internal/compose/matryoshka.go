@@ -42,7 +42,7 @@ func ListenAndServe() {
 		filters = append(filters, sourceIPFilter)
 	}
 
-	proxy := service.NewProxy(filters, dns)
+	proxy := service.NewProxy(filters, dns, cfg.MaxIdleConnsPerHost, cfg.AttemptHTTP2)
 
 	httpServer := newHTTPServer(proxy, cfg.HTTPPort)
 	httpSServer := newHTTPSServer(proxy, certificate, cfg.HTTPSPort)
