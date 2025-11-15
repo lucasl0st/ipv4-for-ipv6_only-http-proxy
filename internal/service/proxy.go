@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"sync"
 
 	"github.com/lucasl0st/ipv4-for-ipv6_only-http-proxy/internal/port"
 )
@@ -14,15 +15,24 @@ import (
 type proxy struct {
 	filters []port.Filter
 	dns     port.DNS
+
+	transports sync.Map
+
+	maxIdleConnectionsPerHost int
+	attemptHTTP2              bool
 }
 
 func NewProxy(
 	filters []port.Filter,
 	dns port.DNS,
+	maxIdleConnectionsPerHost int,
+	attemptHTTP2 bool,
 ) http.Handler {
 	return &proxy{
-		filters: filters,
-		dns:     dns,
+		filters:                   filters,
+		dns:                       dns,
+		maxIdleConnectionsPerHost: maxIdleConnectionsPerHost,
+		attemptHTTP2:              attemptHTTP2,
 	}
 }
 
@@ -66,17 +76,37 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	reverseProxy := httputil.NewSingleHostReverseProxy(r.URL)
 
-	tr := &http.Transport{
+	reverseProxy.Transport = p.transportForHost(host)
+	reverseProxy.Director = directorForHost(host, r)
+
+	reverseProxy.ServeHTTP(w, r)
+}
+
+func (p *proxy) transportForHost(host string) *http.Transport {
+	cachedTransport, ok := p.transports.Load(host)
+	if ok {
+		transport, ok := cachedTransport.(*http.Transport)
+		if ok {
+			return transport
+		}
+	}
+
+	transport := &http.Transport{
+		MaxIdleConns:        p.maxIdleConnectionsPerHost,
+		MaxIdleConnsPerHost: p.maxIdleConnectionsPerHost,
+		ForceAttemptHTTP2:   p.attemptHTTP2,
 		TLSClientConfig: &tls.Config{
 			MinVersion: tls.VersionTLS12,
 			ServerName: host,
 		},
 	}
-	reverseProxy.Transport = tr
-	reverseProxy.Director = func(req *http.Request) {
+	p.transports.Store(host, transport)
+	return transport
+}
+
+func directorForHost(host string, r *http.Request) func(req *http.Request) {
+	return func(req *http.Request) {
 		req.Host = host
 		req.URL = r.URL
 	}
-
-	reverseProxy.ServeHTTP(w, r)
 }
