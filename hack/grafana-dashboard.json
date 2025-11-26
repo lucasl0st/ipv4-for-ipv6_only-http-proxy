@@ -83,7 +83,7 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "expr": "sum(proxy_requests_total{job=\"$job\",instance=~\"$instance\"})",
+          "expr": "sum(increase(proxy_requests_total{job=\"$job\",instance=~\"$instance\"}[$__range]))",
           "refId": "A"
         }
       ],
@@ -149,7 +149,7 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "expr": "100 * sum(rate(proxy_requests_total{job=\"$job\",instance=~\"$instance\",code=~\"2..|3..\"}[$__rate_interval])) / sum(rate(proxy_requests_total{job=\"$job\",instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "100 * sum(increase(proxy_requests_total{job=\"$job\",instance=~\"$instance\",code=~\"2..|3..\"}[$__range])) / sum(increase(proxy_requests_total{job=\"$job\",instance=~\"$instance\"}[$__range]))",
           "refId": "A"
         }
       ],
