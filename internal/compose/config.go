@@ -21,8 +21,13 @@ func (s *stringSlice) Set(val string) error {
 
 type Config struct {
 	// env
-	HTTPPort            uint16 `env:"HTTP_PORT" envDefault:"80"`
-	HTTPSPort           uint16 `env:"HTTPS_PORT" envDefault:"443"`
+	HTTPPort    uint16 `env:"HTTP_PORT" envDefault:"80"`
+	HTTPSPort   uint16 `env:"HTTPS_PORT" envDefault:"443"`
+	MetricsPort uint16 `env:"METRICS_PORT" envDefault:"8080"`
+
+	HTTPSListenerEnabled   bool `env:"HTTPS_LISTENER_ENABLED" envDefault:"true"`
+	MetricsListenerEnabled bool `env:"METRICS_LISTENER_ENABLED" envDefault:"false"`
+
 	CertDir             string `env:"CERT_DIR" envDefault:"/etc/letsencrypt/live/"`
 	CertFileName        string `env:"CERT_FILE_NAME" envDefault:"fullchain.pem"`
 	KeyFileName         string `env:"KEY_FILE_NAME" envDefault:"privkey.pem"`
