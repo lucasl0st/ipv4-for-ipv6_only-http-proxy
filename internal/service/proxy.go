@@ -28,16 +28,20 @@ func NewProxy(
 	maxIdleConnectionsPerHost int,
 	attemptHTTP2 bool,
 ) http.Handler {
-	return &proxy{
+	proxy := &proxy{
 		filters:                   filters,
 		dns:                       dns,
 		maxIdleConnectionsPerHost: maxIdleConnectionsPerHost,
 		attemptHTTP2:              attemptHTTP2,
 	}
+
+	return wrapProxyMetrics(proxy)
 }
 
 func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := strings.Split(r.Host, ":")[0]
+
+	port.MetricProxyRequestsByHost.WithLabelValues(host, r.Method).Inc()
 
 	var wErr error
 	defer func() {
