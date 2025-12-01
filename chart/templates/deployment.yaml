@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "proxy.fullname" . }}
+  labels:
+    {{- include "proxy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      {{- include "proxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "proxy.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "proxy.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.proxy.repository }}:{{ .Values.image.proxy.tag }}"
+          imagePullPolicy: {{ .Values.image.proxy.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.ports.http }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.service.ports.https }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.metricsService.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: CERT_FILE_NAME
+              value: "tls.crt"
+            - name: KEY_FILE_NAME
+              value: "tls.key"
+            - name: CERT_DIR
+              value: "/etc/proxy/tls/"
+            - name: HTTP_PORT
+              value: "{{ .Values.service.ports.http }}"
+            - name: HTTPS_PORT
+              value: "{{ .Values.service.ports.https }}"
+            - name: ALLOWED_HOSTS
+              value: '{{ .Values.config.allowedHosts }}'
+            - name: METRICS_LISTENER_ENABLED
+              value: 'true'
+            - name: METRICS_PORT
+              value: '{{ .Values.metricsService.port }}'
+          args:
+            {{ range .Values.config.sourceIPFilters }}
+            - --source-ip-filter-hosts={{ .hosts }}
+            - --source-ip-filter-cidrs={{ .cidrs }}
+            {{- end }}
+          volumeMounts:
+            {{ range .Values.certificates }}
+            - name: certificate-{{ .name }}
+              mountPath: /etc/proxy/tls/{{ .name }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{ range .Values.certificates }}
+        - name: certificate-{{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

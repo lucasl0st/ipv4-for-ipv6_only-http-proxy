@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "proxy.fullname" . }}
+  labels:
+    {{- include "proxy.labels" . | nindent 4 }}
+    {{- with .Values.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.ports.http }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      nodePort: {{ .Values.service.nodePorts.http }}
+    - port: {{ .Values.service.ports.https }}
+      targetPort: https
+      protocol: TCP
+      name: https
+      nodePort: {{ .Values.service.nodePorts.https }}
+  selector:
+    {{- include "proxy.selectorLabels" . | nindent 4 }}
+  ipFamilies:
+    - IPv4

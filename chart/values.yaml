@@ -1,0 +1,62 @@
+replicaCount: 1
+
+image:
+  proxy:
+    repository: ghcr.io/lucasl0st/ipv4-for-ipv6_only-http-proxy
+    pullPolicy: IfNotPresent
+    tag: "v0.4.1"
+
+config:
+  allowedHosts: ""
+  sourceIPFilters:
+    - hosts: "*.testing.local"
+      cidrs: "127.0.0.1/32"
+
+certificates:
+  - name: mock
+    issuerRef:
+      name: selfsigned
+      kind: ClusterIssuer
+    secretName: mock-certificate
+    commonName: '*.testing.local'
+    dnsNames:
+      - '*.testing.local'
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+    https: 443
+  nodePorts:
+    http: 0
+    https: 0
+  annotations: {}
+  labels: {}
+
+metricsService:
+  type: ClusterIP
+  port: 8080
+  annotations: {}
+  labels: {}
+
+serviceMonitor:
+  enabled: false
+  labels: {}
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

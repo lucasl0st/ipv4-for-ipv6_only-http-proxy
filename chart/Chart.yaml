@@ -1,0 +1,5 @@
+apiVersion: v2
+name: ipv4-for-ipv6-only-http-proxy
+description: A Helm chart for kubernetes
+type: application
+version: 0.0.1

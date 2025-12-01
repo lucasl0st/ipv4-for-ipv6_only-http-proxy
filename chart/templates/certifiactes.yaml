@@ -1,0 +1,15 @@
+{{ range .Values.certificates }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .name }}
+spec:
+  secretName: {{ .secretName }}
+  issuerRef:
+    name: {{ .issuerRef.name }}
+    kind: {{ .issuerRef.kind }}
+  commonName: '{{ .commonName }}'
+  dnsNames:
+    {{ toYaml .dnsNames }}
+---
+{{- end }}
